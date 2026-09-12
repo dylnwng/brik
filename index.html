@@ -1,0 +1,726 @@
+<title>Brik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Sometype+Mono:wght@400..700&display=swap">
+
+<style>
+/* ─── tokens ────────────────────────────────────────────────────────────── */
+:root{
+  --kiln:#17120F;        /* near-black, red-brown bias */
+  --flue:#241D19;
+  --mortar:#E3E2DC;      /* cool pale grey — real mortar, not cream */
+  --mortar-2:#D6D5CE;
+  --chalk:#F2F1ED;
+  --clay:#A63A22;        /* fired clay */
+  --clay-deep:#7E2A17;
+  --ash:#6B655E;
+  --good:#3E6B4F;
+  --warn:#9A6B15;
+
+  --ground:var(--mortar);
+  --panel:var(--chalk);
+  --ink:var(--kiln);
+  --ink-2:var(--ash);
+  --rule:#C6C5BD;
+  --rule-soft:#D5D4CC;
+  --accent:var(--clay);
+  --on-accent:#FFF3EE;
+  --field:#FFFFFF;
+  --shadow:0 1px 0 rgba(23,18,15,.06), 0 12px 30px -18px rgba(23,18,15,.5);
+
+  --disp:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --mono:"Sometype Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:var(--kiln);
+    --panel:var(--flue);
+    --ink:#EFEBE5;
+    --ink-2:#9A928A;
+    --rule:#382E29;
+    --rule-soft:#2C2420;
+    --accent:#D9583A;
+    --on-accent:#1A0D08;
+    --field:#1C1512;
+    --good:#5E9A73;
+    --warn:#C79A3B;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 14px 34px -20px #000;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:var(--kiln);
+  --panel:var(--flue);
+  --ink:#EFEBE5;
+  --ink-2:#9A928A;
+  --rule:#382E29;
+  --rule-soft:#2C2420;
+  --accent:#D9583A;
+  --on-accent:#1A0D08;
+  --field:#1C1512;
+  --good:#5E9A73;
+  --warn:#C79A3B;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 14px 34px -20px #000;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--disp);
+  font-variation-settings:"wdth" 100,"wght" 450;
+  -webkit-font-smoothing:antialiased;
+  padding:22px 16px 64px;
+  display:flex;justify-content:center;
+}
+.wrap{width:100%;max-width:472px;display:flex;flex-direction:column;gap:18px}
+
+/* ─── shared bits ───────────────────────────────────────────────────────── */
+.lbl{
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);
+}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+/* ─── masthead ──────────────────────────────────────────────────────────── */
+.mast{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.mark{
+  font-variation-settings:"wdth" 125,"wght" 850;
+  font-size:23px;letter-spacing:-.005em;line-height:1;
+}
+.mark em{font-style:normal;color:var(--accent)}
+.mast .lbl{white-space:nowrap}
+
+/* ─── the slab ──────────────────────────────────────────────────────────── */
+.slab{
+  position:relative;width:100%;display:block;text-align:left;
+  border:1px solid var(--rule);border-radius:3px;
+  background:var(--panel);color:var(--ink);
+  padding:26px 22px 22px;overflow:hidden;
+  box-shadow:var(--shadow);
+  transition:background-color .35s ease,color .35s ease,border-color .35s ease;
+  touch-action:none;-webkit-user-select:none;user-select:none;
+}
+.slab.on{
+  background-color:var(--clay);
+  border-color:var(--clay-deep);
+  color:var(--on-accent);
+}
+.slab .bond{
+  position:absolute;inset:0;opacity:0;
+  transition:opacity .35s ease;pointer-events:none;
+  background-repeat:repeat;
+}
+.slab.on .bond{opacity:.5}
+.slab > *{position:relative}
+
+.state{
+  font-variation-settings:"wdth" 125,"wght" 880;
+  font-size:clamp(46px,15vw,64px);line-height:.86;
+  letter-spacing:-.02em;margin:10px 0 0;
+}
+.slab .lbl{color:inherit;opacity:.62}
+.clock{
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:27px;font-weight:500;letter-spacing:-.01em;margin-top:12px;
+}
+.clock small{font-size:12px;opacity:.6;font-weight:400;margin-left:6px;letter-spacing:.06em}
+.hint{font-size:13px;line-height:1.45;margin-top:12px;opacity:.72;max-width:32ch}
+
+/* press-and-hold fill */
+.hold{
+  position:absolute;left:0;bottom:0;height:3px;width:0%;
+  background:var(--accent);transition:width .06s linear;
+}
+.slab.on .hold{background:var(--on-accent)}
+
+/* ─── command line ──────────────────────────────────────────────────────── */
+.cmd{display:flex;align-items:center;gap:9px;
+  background:var(--field);border:1px solid var(--rule);border-radius:3px;
+  padding:0 12px;height:46px}
+.cmd span{font-family:var(--mono);color:var(--accent);font-weight:600;font-size:14px}
+.cmd input{
+  flex:1;min-width:0;background:none;border:0;outline:none;color:var(--ink);
+  font-family:var(--mono);font-size:14px;padding:0;
+}
+.cmd input::placeholder{color:var(--ink-2);opacity:.75}
+.cmd kbd{font-family:var(--mono);font-size:10px;color:var(--ink-2);
+  border:1px solid var(--rule);border-radius:2px;padding:2px 5px}
+#out{font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--ink-2);
+  min-height:1.5em;padding:0 2px;white-space:pre-wrap}
+#out.err{color:var(--accent)}
+#out.ok{color:var(--good)}
+
+/* ─── stat strip ────────────────────────────────────────────────────────── */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.stat{padding:11px 4px 12px;border-right:1px solid var(--rule-soft)}
+.stat:last-child{border-right:0}
+.stat b{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.stat .lbl{font-size:9px;margin-top:4px;display:block}
+.stat.spent b{color:var(--warn)}
+
+/* ─── sections ──────────────────────────────────────────────────────────── */
+section{display:flex;flex-direction:column;gap:9px}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.head .tiny{font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+.tiny-btn{font-family:var(--mono);font-size:10.5px;color:var(--accent);
+  text-decoration:underline;text-underline-offset:2px}
+
+/* blocklist */
+.apps{display:flex;flex-direction:column}
+.app{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  padding:10px 2px;border-bottom:1px solid var(--rule-soft)}
+.app:first-child{border-top:1px solid var(--rule-soft)}
+.box{width:15px;height:15px;flex:none;border:1.5px solid var(--ink-2);border-radius:2px;
+  display:grid;place-items:center}
+.app.on .box{background:var(--accent);border-color:var(--accent)}
+.app.on .box::after{content:"";width:7px;height:4px;border:1.5px solid var(--on-accent);
+  border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.app .nm{flex:1;font-size:14.5px}
+.app.off .nm{color:var(--ink-2)}
+.app .ct{font-family:var(--mono);font-size:11px;color:var(--ink-2);
+  font-variant-numeric:tabular-nums}
+
+/* log */
+.log{display:flex;flex-direction:column;font-family:var(--mono);font-size:12px}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:8px 2px;border-bottom:1px solid var(--rule-soft)}
+.row:first-child{border-top:1px solid var(--rule-soft)}
+.row .d{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.row .v{font-variant-numeric:tabular-nums;font-weight:600}
+.chip{font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  border:1px solid var(--rule);border-radius:2px;padding:2px 5px;color:var(--ink-2)}
+.chip.broke{color:var(--accent);border-color:var(--accent)}
+.chip.demo{opacity:.7}
+.empty{font-family:var(--mono);font-size:12px;color:var(--ink-2);padding:10px 2px}
+
+/* break-out */
+.break{border:1px solid var(--rule);border-radius:3px;background:var(--panel);
+  padding:14px;display:flex;flex-direction:column;gap:9px}
+.break p{margin:0;font-size:13px;line-height:1.5;color:var(--ink-2)}
+.breakbtn{position:relative;overflow:hidden;width:100%;
+  border:1px solid var(--accent);border-radius:2px;color:var(--accent);
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:11px;touch-action:none;-webkit-user-select:none;user-select:none}
+.breakbtn i{position:absolute;left:0;top:0;bottom:0;width:0%;
+  background:var(--accent);opacity:.14;transition:width .06s linear}
+.breakbtn s{position:relative;text-decoration:none}
+.breakbtn[disabled]{color:var(--ink-2);border-color:var(--rule);cursor:not-allowed}
+
+/* disclosure panels */
+details{border-top:1px solid var(--rule)}
+details summary{list-style:none;cursor:pointer;padding:13px 2px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px}
+details summary::-webkit-details-marker{display:none}
+details summary .t{font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase}
+details summary .x{font-family:var(--mono);color:var(--ink-2);font-size:14px;line-height:1}
+details[open] summary .x{transform:rotate(45deg)}
+.body{padding:2px 2px 20px;display:flex;flex-direction:column;gap:13px;
+  font-size:13.5px;line-height:1.55;color:var(--ink)}
+.body p{margin:0;max-width:60ch}
+.body ol{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:6px}
+.body li::marker{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.body b{font-variation-settings:"wght" 700}
+.pay{display:flex;flex-direction:column;gap:6px}
+pre{margin:0;background:var(--field);border:1px solid var(--rule);border-radius:3px;
+  padding:11px 12px;font-family:var(--mono);font-size:11.5px;line-height:1.5;
+  overflow-x:auto;white-space:pre;color:var(--ink)}
+.copy{align-self:flex-start;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--rule);
+  border-radius:2px;padding:6px 10px;color:var(--ink)}
+.copy:hover{border-color:var(--accent);color:var(--accent)}
+.key{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent);
+  background:var(--field);border:1px dashed var(--accent);border-radius:3px;
+  padding:10px 12px;text-align:center;letter-spacing:.02em;word-break:break-all}
+
+/* wall interstitial */
+.wall{position:fixed;inset:0;z-index:20;display:none;place-items:center;padding:24px;
+  background:color-mix(in srgb,var(--clay) 94%,#000)}
+.wall.show{display:grid}
+.wall .in{max-width:340px;text-align:center;color:var(--on-accent);position:relative}
+.wall .bond2{position:absolute;inset:-24px;opacity:.45;pointer-events:none}
+.wall h2{font-variation-settings:"wdth" 125,"wght" 880;font-size:44px;line-height:.9;
+  margin:0 0 12px;letter-spacing:-.02em}
+.wall p{margin:0 0 20px;font-size:14px;line-height:1.5;opacity:.85}
+.wall button{border:1px solid var(--on-accent);border-radius:2px;padding:10px 20px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--on-accent)}
+
+footer{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);line-height:1.6;
+  border-top:1px solid var(--rule);padding-top:12px}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <div class="mark">BR<em>I</em>K</div>
+    <div class="lbl" id="tagline">local · no account</div>
+  </div>
+
+  <button class="slab" id="slab" aria-live="polite">
+    <canvas class="bond" id="bond" aria-hidden="true"></canvas>
+    <span class="lbl" id="slabLbl">phone status</span>
+    <h1 class="state" id="state">OPEN</h1>
+    <div class="clock mono" id="clock">00:00:00<small id="clockNote">since last session</small></div>
+    <p class="hint" id="hint">Press and hold to lay the brick. Everything on your list goes behind the wall.</p>
+    <i class="hold" id="hold"></i>
+  </button>
+
+  <div class="cmd">
+    <span>&rsaquo;</span>
+    <input id="input" autocomplete="off" autocapitalize="off" autocorrect="off"
+           spellcheck="false" placeholder="brik" aria-label="Command line">
+    <kbd>return</kbd>
+  </div>
+  <div id="out" role="status"></div>
+
+  <div class="strip">
+    <div class="stat"><b id="sStreak">0</b><span class="lbl">streak</span></div>
+    <div class="stat"><b id="sToday">0m</b><span class="lbl">today</span></div>
+    <div class="stat"><b id="sKnocks">0</b><span class="lbl">knocks</span></div>
+    <div class="stat" id="passWrap"><b id="sPasses">3</b><span class="lbl">passes</span></div>
+  </div>
+
+  <section id="breakSec" hidden>
+    <div class="break">
+      <p id="breakCopy">No tag within reach? You can knock the wall down early — it burns one
+        weekly pass and resets the streak.</p>
+      <button class="breakbtn" id="breakBtn"><i id="breakFill"></i><s id="breakTxt">Hold 8s to break out</s></button>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <div class="lbl">Behind the wall</div>
+      <div class="tiny" id="blockCount">0 of 0</div>
+    </div>
+    <div class="apps" id="apps"></div>
+    <div class="head">
+      <button class="tiny-btn" id="addApp">+ add an app</button>
+      <div class="tiny">tap a row to toggle · while bricked, it knocks</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <div class="lbl">Ledger</div>
+      <button class="tiny-btn" id="clearDemo" hidden>clear demo rows</button>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <details id="setup">
+    <summary><span class="t">Set up the tap</span><span class="x">+</span></summary>
+    <div class="body">
+      <p>Brik keeps the state; the <b>key phrase</b> is the brick. Keep the phrase somewhere
+        physically inconvenient — a sticker on the fridge, a card in a drawer, an NFC tag by
+        the door. Laying the brick is free. Lifting it means going to where the phrase lives.</p>
+
+      <div class="pay">
+        <div class="lbl">Your key phrase</div>
+        <div class="key" id="keyPhrase">—</div>
+        <button class="copy" id="rollKey">Roll a new phrase</button>
+      </div>
+
+      <div class="pay">
+        <div class="lbl">Option A · NFC sticker (no app, ~$1 a tag)</div>
+        <ol>
+          <li>Get NTAG215 stickers. Stick one where you want the ritual to live.</li>
+          <li>Open <b>NFC Tools</b> → Write → Add a record → <b>Text</b> → paste the payload below.</li>
+          <li>Hold the top of your iPhone to the tag. iOS reads it without unlocking an app;
+            the phrase appears in the notification. Type it into the command line.</li>
+        </ol>
+        <pre id="payload">unbrik …</pre>
+        <button class="copy" data-copy="payload">Copy payload</button>
+      </div>
+
+      <div class="pay">
+        <div class="lbl">Option B · Shortcuts automation (this is what actually blocks apps)</div>
+        <ol>
+          <li>Shortcuts → <b>Automation</b> → + → <b>NFC</b> → Scan your tag → name it “Brik”.</li>
+          <li>Add action <b>Set Focus</b> → a custom Focus that allows only what you need.
+            Set it to <b>Toggle</b>.</li>
+          <li>Add action <b>Copy to Clipboard</b> with your key phrase, so a tap hands you the
+            phrase for Brik's ledger.</li>
+          <li>Turn <b>Run Immediately</b> on and <b>Notify When Run</b> off.</li>
+        </ol>
+        <p>iOS only lets Focus and Screen Time hide apps — no web page can. So the tag flips
+          Focus for real enforcement, and Brik holds the clock, the streak and the cost.</p>
+      </div>
+
+      <div class="pay">
+        <div class="lbl">Option C · Command only</div>
+        <p>Type <code class="mono">brik</code> to lay it, the key phrase to lift it,
+          <code class="mono">help</code> for the rest. Works from the phone keyboard, a
+          Shortcut, or anywhere you can type.</p>
+      </div>
+    </div>
+  </details>
+
+  <details id="rebuild">
+    <summary><span class="t">Rebuild Brik from scratch</span><span class="x">+</span></summary>
+    <div class="body">
+      <p>Paste this into Claude on your iPhone and you get this app back, from nothing.</p>
+      <pre id="prompt"></pre>
+      <button class="copy" data-copy="prompt">Copy the prompt</button>
+    </div>
+  </details>
+
+  <footer>
+    Brik v0.1 · state lives in this browser only · <span id="footNote">nothing leaves the device</span><br>
+    Add to Home Screen for the full-screen version.
+  </footer>
+</div>
+
+<div class="wall" id="wall">
+  <div class="in">
+    <canvas class="bond2" id="bond2" aria-hidden="true"></canvas>
+    <h2 id="wallH">WALL</h2>
+    <p id="wallP">Instagram is behind the brick.</p>
+    <button id="wallX">Back to it</button>
+  </div>
+</div>
+
+<script>
+/* ── running-bond tile, drawn once ──────────────────────────────────────── */
+function bondTile(){
+  const bw=46,bh=19,g=2,c=document.createElement("canvas");
+  c.width=bw*2;c.height=bh*2;
+  const x=c.getContext("2d");
+  x.fillStyle="rgba(0,0,0,.30)";x.fillRect(0,0,c.width,c.height);
+  x.fillStyle="rgba(255,255,255,.10)";
+  for(let r=0;r<2;r++){
+    const off=r%2?-bw/2:0;
+    for(let i=-1;i<3;i++) x.fillRect(off+i*bw+g/2,r*bh+g/2,bw-g,bh-g);
+  }
+  return c.toDataURL();
+}
+const TILE=bondTile();
+for(const id of ["bond","bond2"]){
+  const el=document.getElementById(id);
+  el.style.background="url("+TILE+")";
+  el.removeAttribute("width");el.removeAttribute("height");
+}
+
+/* ── state ──────────────────────────────────────────────────────────────── */
+const KEY="brik.v1", PASSES=3, HOLD_MS=900, BREAK_MS=8000;
+const WORDS=["mortar","kiln","clay","course","trowel","lintel","slate","flint","quarry",
+             "hearth","granite","chisel","gable","ridge","anvil","cinder"];
+const DEFAULT_APPS=[
+  {id:"ig",name:"Instagram"},{id:"tt",name:"TikTok"},{id:"x",name:"X"},
+  {id:"yt",name:"YouTube"},{id:"rd",name:"Reddit"},{id:"nw",name:"News"}
+];
+const now=()=>Date.now();
+const day=t=>new Date(t).toISOString().slice(0,10);
+
+function seedPhrase(){
+  const p=[...WORDS].sort(()=>Math.random()-.5).slice(0,3);
+  return p.join("-")+"-"+(10+Math.floor(Math.random()*89));
+}
+function seed(){
+  const d=86400000,t=now(),S=[];
+  // Demo rows so the ledger reads as a working instrument, not an empty shell.
+  const demo=[[3,9.2e6,4,false],[2,1.4e7,1,false],[2,5.1e6,9,true],[1,1.1e7,0,false]];
+  for(const [ago,dur,knocks,broke] of demo){
+    const end=t-ago*d+11*3600000;
+    S.push({start:end-dur,end,knocks,broke,demo:true});
+  }
+  return{
+    locked:false, since:t, phrase:seedPhrase(),
+    apps:DEFAULT_APPS.map((a,i)=>({...a,on:i<5})),
+    sessions:S, breaks:[], knocks:0
+  };
+}
+let S;
+try{ S=JSON.parse(localStorage.getItem(KEY))||seed(); }catch(e){ S=seed(); }
+if(!S.apps) S=seed();
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+
+/* ── derived ────────────────────────────────────────────────────────────── */
+const done=()=>S.sessions.filter(s=>s.end);
+function todayMs(){
+  const t=day(now());
+  let m=done().filter(s=>day(s.end)===t).reduce((a,s)=>a+(s.end-s.start),0);
+  if(S.locked) m+=now()-S.since;
+  return m;
+}
+function streak(){
+  const days=new Set(done().filter(s=>!s.broke).map(s=>day(s.end)));
+  if(S.locked) days.add(day(now()));
+  let n=0,c=new Date();
+  for(;;){
+    const k=c.toISOString().slice(0,10);
+    if(days.has(k)){n++;c.setDate(c.getDate()-1);}
+    else if(n===0&&k===day(now())){c.setDate(c.getDate()-1);}
+    else break;
+    if(n>999)break;
+  }
+  return n;
+}
+const passesLeft=()=>PASSES-S.breaks.filter(t=>now()-t<7*86400000).length;
+
+function hms(ms){
+  const s=Math.max(0,Math.floor(ms/1000));
+  const p=n=>String(n).padStart(2,"0");
+  return p(Math.floor(s/3600))+":"+p(Math.floor(s/60)%60)+":"+p(s%60);
+}
+function human(ms){
+  const m=Math.round(ms/60000);
+  return m<60?m+"m":Math.floor(m/60)+"h"+(m%60?String(m%60).padStart(2,"0"):"");
+}
+function stamp(t){
+  const d=new Date(t), n=new Date();
+  const same=day(t)===day(now());
+  return same?"today":(n-d<6*86400000
+    ?["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]
+    :(d.getMonth()+1)+"/"+d.getDate());
+}
+
+/* ── render ─────────────────────────────────────────────────────────────── */
+const $=id=>document.getElementById(id);
+function render(){
+  const on=S.locked;
+  $("slab").classList.toggle("on",on);
+  $("state").textContent=on?"BRICKED":"OPEN";
+  $("slabLbl").textContent=on?"the wall is up":"phone status";
+  $("clockNote").textContent=on?"bricked":"since you last laid it";
+  $("hint").textContent=on
+    ? "Type the key phrase to lift it. The phrase lives on the tag, not in your pocket."
+    : "Press and hold to lay the brick. Everything on your list goes behind the wall.";
+  $("tagline").textContent=on?"wall up":"local · no account";
+
+  $("sStreak").textContent=streak();
+  $("sToday").textContent=human(todayMs());
+  $("sKnocks").textContent=S.knocks||0;
+  $("sPasses").textContent=passesLeft();
+  $("passWrap").classList.toggle("spent",passesLeft()===0);
+
+  $("breakSec").hidden=!on;
+  const bb=$("breakBtn"), left=passesLeft();
+  bb.disabled=left<=0;
+  $("breakTxt").textContent=left>0?"Hold 8s to break out":"No passes left this week";
+  $("breakCopy").textContent=left>0
+    ? "No tag within reach? You can knock the wall down early — it burns one of "+left+
+      " weekly pass"+(left===1?"":"es")+" and resets the streak."
+    : "You've used all three passes this week. The phrase is the only way out now.";
+
+  const apps=$("apps");apps.innerHTML="";
+  for(const a of S.apps){
+    const b=document.createElement("button");
+    b.className="app "+(a.on?"on":"off");
+    b.innerHTML='<i class="box"></i><span class="nm"></span><span class="ct"></span>';
+    b.querySelector(".nm").textContent=a.name;
+    b.querySelector(".ct").textContent=a.on?(on?"blocked":"on the list"):"allowed";
+    b.onclick=()=>{
+      if(S.locked&&a.on) return knock(a.name);
+      if(S.locked) return say("Can't edit the list while the wall is up.","err");
+      a.on=!a.on;save();render();
+    };
+    apps.appendChild(b);
+  }
+  $("blockCount").textContent=S.apps.filter(a=>a.on).length+" of "+S.apps.length;
+
+  const log=$("log");log.innerHTML="";
+  const rows=[...S.sessions].filter(s=>s.end).sort((a,b)=>b.end-a.end).slice(0,6);
+  if(!rows.length) log.innerHTML='<div class="empty">No sessions yet. Lay one.</div>';
+  for(const s of rows){
+    const r=document.createElement("div");r.className="row";
+    r.innerHTML='<span class="d"></span><span class="v"></span><span></span>';
+    r.children[0].textContent=stamp(s.end);
+    r.children[1].textContent=human(s.end-s.start)+
+      (s.knocks?"  ·  "+s.knocks+" knock"+(s.knocks===1?"":"s"):"");
+    const tags=[];
+    if(s.broke) tags.push('<span class="chip broke">broke out</span>');
+    if(s.demo)  tags.push('<span class="chip demo">demo</span>');
+    r.children[2].innerHTML=tags.join(" ");
+    log.appendChild(r);
+  }
+  $("clearDemo").hidden=!S.sessions.some(s=>s.demo);
+
+  $("keyPhrase").textContent=S.phrase;
+  $("payload").textContent="unbrik "+S.phrase;
+  tick();
+}
+function tick(){
+  const base=S.locked?S.since:(done().sort((a,b)=>b.end-a.end)[0]?.end||S.since);
+  $("clock").firstChild.textContent=hms(now()-base);
+}
+setInterval(()=>{ tick(); if(S.locked) $("sToday").textContent=human(todayMs()); },1000);
+
+let outT;
+function say(m,cls){
+  const o=$("out");o.textContent=m;o.className=cls||"";
+  clearTimeout(outT);outT=setTimeout(()=>{o.textContent="";o.className="";},5200);
+}
+
+/* ── actions ────────────────────────────────────────────────────────────── */
+function lay(){
+  if(S.locked) return say("Already bricked.");
+  S.locked=true;S.since=now();S.knocks=0;save();render();
+  say("Wall up. "+S.apps.filter(a=>a.on).length+" apps behind it.","ok");
+  if(navigator.vibrate) navigator.vibrate([14,40,14]);
+}
+function lift(broke){
+  if(!S.locked) return say("Nothing to lift.");
+  const d=now()-S.since;
+  S.sessions.push({start:S.since,end:now(),knocks:S.knocks||0,broke:!!broke});
+  if(broke) S.breaks.push(now());
+  S.locked=false;S.since=now();S.knocks=0;save();render();
+  say(broke
+    ? "Broke out after "+human(d)+". Streak reset, "+passesLeft()+" passes left."
+    : "Lifted. "+human(d)+" bricked.", broke?"err":"ok");
+  if(navigator.vibrate) navigator.vibrate(broke?[80,60,80]:20);
+}
+function knock(name){
+  S.knocks=(S.knocks||0)+1;save();
+  $("wallH").textContent="WALL";
+  $("wallP").textContent=name+" is behind the brick. Knock #"+S.knocks+" this session.";
+  $("wall").classList.add("show");
+  $("sKnocks").textContent=S.knocks;
+  if(navigator.vibrate) navigator.vibrate(35);
+}
+$("wallX").onclick=()=>$("wall").classList.remove("show");
+$("wall").onclick=e=>{ if(e.target===$("wall")) $("wall").classList.remove("show"); };
+
+/* ── press and hold the slab ────────────────────────────────────────────── */
+(function(){
+  const slab=$("slab"),fill=$("hold");let t0=0,raf=0;
+  const stop=()=>{cancelAnimationFrame(raf);t0=0;fill.style.width="0%"};
+  const step=()=>{
+    const p=Math.min(1,(now()-t0)/HOLD_MS);
+    fill.style.width=(p*100)+"%";
+    if(p>=1){stop();S.locked?say("The wall needs the key phrase — type it below.","err"):lay();}
+    else raf=requestAnimationFrame(step);
+  };
+  slab.addEventListener("pointerdown",e=>{e.preventDefault();t0=now();raf=requestAnimationFrame(step)});
+  for(const ev of ["pointerup","pointercancel","pointerleave"]) slab.addEventListener(ev,stop);
+  slab.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();
+    S.locked?say("The wall needs the key phrase — type it below.","err"):lay();}});
+})();
+
+/* ── hold to break out ──────────────────────────────────────────────────── */
+(function(){
+  const b=$("breakBtn"),f=$("breakFill"),tx=$("breakTxt");let t0=0,raf=0;
+  const stop=()=>{cancelAnimationFrame(raf);t0=0;f.style.width="0%";
+    if(passesLeft()>0)tx.textContent="Hold 8s to break out"};
+  const step=()=>{
+    const p=Math.min(1,(now()-t0)/BREAK_MS);
+    f.style.width=(p*100)+"%";
+    tx.textContent=p<1?"Keep holding — "+Math.ceil(BREAK_MS/1000*(1-p))+"s":"…";
+    if(p>=1){stop();lift(true);}else raf=requestAnimationFrame(step);
+  };
+  b.addEventListener("pointerdown",e=>{if(b.disabled)return;e.preventDefault();
+    t0=now();raf=requestAnimationFrame(step)});
+  for(const ev of ["pointerup","pointercancel","pointerleave"]) b.addEventListener(ev,stop);
+})();
+
+/* ── command line ───────────────────────────────────────────────────────── */
+const HELP=["brik            lay the wall",
+            "<key phrase>    lift it",
+            "status          where things stand",
+            "block <app>     add to the list",
+            "allow <app>     take it off",
+            "key             show the phrase",
+            "wipe            erase everything"].join("\n");
+$("input").addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return;
+  const raw=e.target.value.trim();if(!raw)return;
+  e.target.value="";
+  const v=raw.toLowerCase(), [c,...rest]=v.split(/\s+/), arg=rest.join(" ");
+
+  if(v===S.phrase.toLowerCase()||v==="unbrik "+S.phrase.toLowerCase()) return lift(false);
+  if(c==="brik"||c==="lock"||c==="lay") return lay();
+  if(c==="unbrik"||c==="unlock"||c==="lift")
+    return say(S.locked?"Wrong phrase. It's on the tag.":"Nothing to lift.","err");
+  if(c==="help"||c==="?") return say(HELP);
+  if(c==="status") return say(
+    (S.locked?"BRICKED "+hms(now()-S.since):"OPEN")+
+    "  ·  streak "+streak()+"  ·  today "+human(todayMs())+
+    "  ·  "+passesLeft()+" passes");
+  if(c==="key") return say(S.phrase);
+  if(c==="block"||c==="allow"){
+    if(S.locked) return say("Can't edit the list while the wall is up.","err");
+    if(!arg) return say("Name an app: "+c+" instagram","err");
+    let a=S.apps.find(x=>x.name.toLowerCase()===arg);
+    if(!a&&c==="block"){a={id:"c"+now(),name:raw.split(/\s+/).slice(1).join(" "),on:false};S.apps.push(a);}
+    if(!a) return say("No app called "+arg+".","err");
+    a.on=c==="block";save();render();
+    return say(a.name+(a.on?" goes behind the wall.":" is allowed."),"ok");
+  }
+  if(c==="wipe"){localStorage.removeItem(KEY);S=seed();save();render();
+    return say("Wiped. Fresh phrase issued.","ok");}
+  say("Unknown: "+raw+"   (try help)","err");
+});
+
+/* ── odds and ends ──────────────────────────────────────────────────────── */
+$("addApp").onclick=()=>{
+  if(S.locked) return say("Can't edit the list while the wall is up.","err");
+  const n=prompt("App to put behind the wall:");
+  if(!n||!n.trim())return;
+  S.apps.push({id:"c"+now(),name:n.trim(),on:true});save();render();
+};
+$("clearDemo").onclick=()=>{S.sessions=S.sessions.filter(s=>!s.demo);save();render();
+  say("Demo rows cleared.","ok");};
+$("rollKey").onclick=()=>{
+  if(S.locked) return say("Not while the wall is up.","err");
+  S.phrase=seedPhrase();save();render();say("New phrase. Rewrite your tag.","ok");
+};
+document.querySelectorAll("[data-copy]").forEach(b=>{
+  b.onclick=async()=>{
+    try{ await navigator.clipboard.writeText($(b.dataset.copy).textContent);
+      const o=b.textContent;b.textContent="Copied";setTimeout(()=>b.textContent=o,1400);
+    }catch(e){ say("Copy blocked — select the text instead.","err"); }
+  };
+});
+
+/* URL trigger, for when you host this yourself: ?cmd=brik or #unbrik <phrase> */
+(function(){
+  const q=new URLSearchParams(location.search).get("cmd")||
+          decodeURIComponent(location.hash.slice(1));
+  if(!q)return;
+  const v=q.trim().toLowerCase();
+  if(v==="brik"&&!S.locked) lay();
+  else if((v===S.phrase.toLowerCase()||v==="unbrik "+S.phrase.toLowerCase())&&S.locked) lift(false);
+})();
+
+$("prompt").textContent=
+`Build me "Brik" — a single-file HTML app, no build step, no backend. It is Brick (the
+NFC-brick focus app) with the physical brick replaced by a key phrase.
+
+Behaviour:
+- Two states: OPEN and BRICKED. A running clock shows time in the current state.
+- Laying the brick is easy: press and hold the big slab for ~1s, or type "brik".
+- Lifting it is deliberate: you must type a 4-part key phrase (e.g. mortar-kiln-clay-42)
+  that the app generates. I keep the phrase on an NFC sticker away from my desk, so
+  unlocking means physically walking to it.
+- Escape hatch: hold a button for 8 seconds to break out. Costs one of 3 weekly passes
+  and resets the streak. Log it as "broke out".
+- Blocklist of apps. Tapping a blocked app while BRICKED shows a full-screen brick wall
+  and counts a "knock".
+- Stats: day streak, time bricked today, knocks this session, passes left.
+- Ledger of the last 6 sessions: duration, knocks, broke-out flag.
+- Commands: brik / <phrase> / status / block <app> / allow <app> / key / help / wipe.
+- Everything in localStorage. Works offline. Add-to-Home-Screen friendly.
+- Also honour ?cmd= and #hash triggers so a Shortcut can drive it.
+
+Design: masonry, not startup. Fired-clay red (#A63A22), cool mortar grey (#E3E2DC),
+near-black with a red-brown bias (#17120F). Archivo variable (expanded + heavy) for the
+state word, Sometype Mono for every number and label. The slab turns clay-red with a
+running-bond brick pattern when BRICKED — that state change is the whole identity.
+Light and dark themes via CSS custom properties.
+
+Include a setup panel explaining how to write the phrase to an NTAG215 sticker with NFC
+Tools, and how to pair it with an iOS Shortcuts NFC automation that toggles a Focus mode
+— since only Focus/Screen Time can actually hide apps on iOS.`;
+
+render();
+</script>
