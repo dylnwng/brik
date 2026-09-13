@@ -684,15 +684,18 @@ document.querySelectorAll("[data-copy]").forEach(b=>{
   };
 });
 
-/* URL trigger, for when you host this yourself: ?cmd=brik or #unbrik <phrase> */
-(function(){
-  const q=new URLSearchParams(location.search).get("cmd")||
-          decodeURIComponent(location.hash.slice(1));
+/* URL trigger: ?cmd=brik or #unbrik <phrase>. Also fires on hashchange, so a tag
+   tap lands even when the app is already sitting open in a tab. */
+function urlTrigger(){
+  let q=new URLSearchParams(location.search).get("cmd")||"";
+  if(!q){ try{ q=decodeURIComponent(location.hash.slice(1)); }catch(e){ q=location.hash.slice(1); } }
   if(!q)return;
   const v=q.trim().toLowerCase();
   if(v==="brik"&&!S.locked) lay();
   else if((v===S.phrase.toLowerCase()||v==="unbrik "+S.phrase.toLowerCase())&&S.locked) lift(false);
-})();
+}
+urlTrigger();
+addEventListener("hashchange",urlTrigger);
 
 $("prompt").textContent=
 `Build me "Brik" — a single-file HTML app, no build step, no backend. It is Brick (the
