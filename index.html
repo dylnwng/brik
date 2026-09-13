@@ -444,6 +444,8 @@ let S;
 try{ S=JSON.parse(localStorage.getItem(KEY))||seed(); }catch(e){ S=seed(); }
 if(!S.apps) S=seed();
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+// Pin the seeded phrase on first run — otherwise a reload issues a new one.
+try{ if(!localStorage.getItem(KEY)) save(); }catch(e){}
 
 /* ── derived ────────────────────────────────────────────────────────────── */
 const done=()=>S.sessions.filter(s=>s.end);
